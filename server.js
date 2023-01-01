@@ -38,6 +38,16 @@ app.get('/api/users/:id', (req, res) => {
     return res.status(200).json(user);
 });
 
+app.get('/api/users', (req, res) => {
+    let users = req.users;
+
+    if (req.query.name) {
+        users = users.filter((u) => u.name.indexOf(req.query.name) > -1);
+    }
+
+    res.json(users);
+});
+
 app.listen(port, host, () =>
     console.log(`Server listens http://${host}:${port}`)
 );
