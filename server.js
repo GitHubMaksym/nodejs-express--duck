@@ -28,7 +28,7 @@ app.use((req, res, next) => {
     });
 });
 
-app.get('/api/users/:id', (req, res) => {
+app.get('/api/v1/users/:id', (req, res) => {
     const user = req.users.find((c) => c.id === +req.params.id);
 
     if (!user) {
@@ -38,7 +38,7 @@ app.get('/api/users/:id', (req, res) => {
     return res.status(200).json(user);
 });
 
-app.get('/api/users', (req, res) => {
+app.get('/api/v1/users', (req, res) => {
     let users = req.users;
 
     if (req.query.name) {
