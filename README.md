@@ -7,4 +7,6 @@ NodeJS with Express Duck tales
 3. npm install express --save
 
 4. node server.js
-5. http://127.0.0.1:7000/about
+5. http://127.0.0.1:7000/api/users
+
+6. Ctrl + Shift + P - beautify JSON

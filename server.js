@@ -1,33 +1,97 @@
-const app = require('express')();
+// process.env.NODE_ENV = 'development';
+process.env.NODE_ENV = 'test';
+
+const express = require('express'),
+    app = express(),
+    fs = require('fs');
 
 const host = '127.0.0.1';
 const port = 7000;
 
-app.get('/home', (req, res) => {
-    res.status(200).type('text/plain');
-    res.send('Home page');
-});
+app.use(express.json());
+app.use(express.urlencoded({extended: true}));
 
-app.get('/about', (req, res) => {
-    res.status(200).type('text/plain');
-    res.send('About page');
-});
+let file = 'data.json';
 
-app.post('/api/admin', (req, res) => {
-    res.status(200).type('text/plain');
-    res.send('Create admin request');
-});
-
-app.post('/api/user', (req, res) => {
-    res.status(200).type('text/plain');
-    res.send('Create user request');
-});
+if ((process.env.NODE_ENV = 'test')) file = 'data-test.json';
 
 app.use((req, res, next) => {
-    res.status(404).type('text/plain');
-    res.send('Not found');
+    fs.readFile(file, (err, data) => {
+        if (err)
+            return res.status(500).send({message: 'Error while getting users'});
+
+        req.users = JSON.parse(data);
+
+        next();
+    });
 });
 
-app.listen(port, host, function () {
-    console.log(`Server listens http://${host}:${port}`);
-});
+app.route('/api/users')
+    .get((req, res) => {
+        if (req.query.id) {
+            if (req.users.hasOwnProperty(req.query.id))
+                return res.status(200).send({data: req.users[req.query.id]});
+            else return res.status(404).send({message: 'User not found.'});
+        } else if (!req.users)
+            return res.status(404).send({message: 'Users not found.'});
+
+        return res.status(200).send({data: req.users});
+    })
+    .post((req, res) => {
+        if (req.body.user && req.body.user.id) {
+            if (req.users.hasOwnProperty(req.body.user.id))
+                return res.status(409).send({message: 'User already exists.'});
+
+            req.users[req.body.user.id] = req.body.user;
+
+            fs.writeFile(file, JSON.stringify(req.users), (err, response) => {
+                if (err)
+                    return res
+                        .status(500)
+                        .send({message: 'Unable create user.'});
+
+                return res.status(200).send({message: 'User created.'});
+            });
+        } else return res.status(400).send({message: 'Bad request.'});
+    })
+    .put((req, res) => {
+        if (req.body.user && req.body.user.id) {
+            if (!req.users.hasOwnProperty(req.body.user.id))
+                return res.status(404).send({message: 'User not found.'});
+
+            req.users[req.body.user.id] = req.body.user;
+
+            fs.writeFile(file, JSON.stringify(req.users), (err, response) => {
+                if (err)
+                    return res
+                        .status(500)
+                        .send({message: 'Unable update user.'});
+
+                return res.status(200).send({message: 'User updated.'});
+            });
+        } else return res.status(400).send({message: 'Bad request.'});
+    })
+    .delete((req, res) => {
+        if (req.query.id) {
+            if (req.users.hasOwnProperty(req.query.id)) {
+                delete req.users[req.query.id];
+
+                fs.writeFile(
+                    file,
+                    JSON.stringify(req.users),
+                    (err, response) => {
+                        if (err)
+                            return res
+                                .status(500)
+                                .send({message: 'Unable delete user.'});
+
+                        return res.status(200).send({message: 'User deleted.'});
+                    }
+                );
+            } else return res.status(404).send({message: 'User not found.'});
+        } else return res.status(400).send({message: 'Bad request.'});
+    });
+
+app.listen(port, host, () =>
+    console.log(`Server listens http://${host}:${port}`)
+);
